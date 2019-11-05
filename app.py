@@ -17,11 +17,16 @@ if __name__ != '__main__':
 	app.logger.handlers = gunicorn_logger.handlers
 	app.logger.setLevel(gunicorn_logger.level)
 
+@app.route("/reset_profiles", methods=["POST"])
+def reset():
+	mongo.db.profiles.drop()
+	return { "status": "OK" }, 200
+
 # Used to add a user from registration
 @app.route('/user', methods=["POST"])
 def add_profile():
-	print(80*'=')
-	print("/ADD_PROFILE()")
+	app.logger.debug(80*'=')
+	app.logger.debug("/ADD_PROFILE()")
 
 	data = request.json
 
@@ -38,27 +43,29 @@ def add_profile():
 
 @app.route('/user', methods=["GET"])
 def get_profile():
-	print(80*'=')
-	print("/GET_PROFILE()")
+	app.logger.debug(80*'=')
+	app.logger.debug("/GET_PROFILE()")
 	data = request.json
 	usr = mongo.db.profiles.find_one({"username" : data["username"]})
 
 	if not usr:
 		return {"status" : "error", "message" : "could not find user" }, 200 #400
 
+	app.logger.debug(usr)
+
 	return {
 		"status" : "OK",
 		"user" : {
 			"email" : usr["email"],
-			"followers" : usr["num_following"],
-			"following" : usr["num_followed"]
+			"followers" : usr["num_followed"],
+			"following" : usr["num_following"]
 		}
 	}, 200
 
-@app.route('/user/posts', methods=["GET"])
+@app.route('/user/posts', methods=["POST"])
 def get_posts():
-	print(80*'=')
-	print("/GET_POSTS()")
+	app.logger.debug(80*'=')
+	app.logger.debug("/GET_POSTS()")
 	data = request.json
 
 	limit = 50 # default
@@ -70,13 +77,15 @@ def get_posts():
 	query = {
 		"query": {
 			"bool": {
-				"filter": {
-					"term": {"username": data['username']}
-				}
+				"filter": [
+					{ "match": {"username": data['username']} }
+				]
 			}
 		},
 		"size": limit
 	}
+
+	app.logger.info(query)
 
 	r = requests.get(url=('http://' + search_route + '/posts/_search'), json=query)
 	r_json = r.json()
@@ -88,15 +97,15 @@ def get_posts():
 		results.append(search_result['_id'])
 		app.logger.debug(search_result['_id'])
 
-	if not results:
-		return {"status" : "error", "message" : "Could not find any posts by the specified user" }, 200 #400
+#	if not results:
+#		return {"status" : "error", "message" : "Could not find any posts by the specified user" }, 200 #400
 
-	return { "status" : "OK", "item" : results }, 200
+	return { "status" : "OK", "items" : results }, 200
 
-@app.route('/user/followers', methods=["GET"])
+@app.route('/user/followers', methods=["POST"])
 def get_followers():
-	print(80*'=')
-	print("/USER/FOLLOWERS()")
+	app.logger.debug(80*'=')
+	app.logger.debug("/USER/FOLLOWERS()")
 	data = request.json
 	usr = mongo.db.profiles.find_one({"username" : data["username"]})
 
@@ -113,10 +122,10 @@ def get_followers():
 	
 	return { "status" : "OK", "users" : usr_f }, 200
 
-@app.route('/user/following', methods=["GET"])
+@app.route('/user/following', methods=["POST"])
 def get_following():
-	print(80*'=')
-	print('/USER/FOLLOWING()')
+	app.logger.debug(80*'=')
+	app.logger.debug('/USER/FOLLOWING()')
 	data = request.json
 	usr = mongo.db.profiles.find_one({"username" : data["username"]})
 
@@ -135,9 +144,11 @@ def get_following():
 
 @app.route('/follow', methods=["POST"])
 def follow():
-	print(80*'=')
-	print('/FOLLOW()')
+	app.logger.debug(80*'=')
+	app.logger.debug('/FOLLOW()')
 	data = request.json
+
+	app.logger.debug(data)
 
 	user = mongo.db.profiles.find_one({"username" : data["user"]})
 	user_followed = mongo.db.profiles.find_one({"username" : data["username"]})
@@ -154,32 +165,32 @@ def follow():
 		mongo.db.profiles.update_one(
 			{ "username" : data["user"] },
 			{
-				{ "$inc" : { "num_following" : 1 } },
-				{ "$push" : { "following" : data["username"] } }
+				"$inc" : { "num_following" : 1 },
+				"$push" : { "following" : data["username"] }
 			}
 		)
 		mongo.db.profiles.update_one(
 			{ "username" :  data["username"] },
 			{
-				{ "$inc" : { "num_followed" : 1 } },
-				{ "$push" : { "followed_by" : data["user"] } }
+				"$inc" : { "num_followed" : 1 },
+				"$push" : { "followed_by" : data["user"] }
 			}
 		)
 	else:
 		mongo.db.profiles.update_one(
 			{ "username" : data["user"] },
 			{
-				{ "$inc" : { "num_following" : -1 } },
-				{ "$pull" : { "following" : data["username"] } }
+				"$inc" : { "num_following" : -1 },
+				"$pull" : { "following" : data["username"] }
 			}
 		)
 		mongo.db.profiles.update_one(
 			{ "username" :  data["username"] },
 			{
-				{ "$inc" : { "num_followed" : -1 } },
-				{ "$pull" : { "followed_by" : data["user"] } }
+				"$inc" : { "num_followed" : -1 },
+				"$pull" : { "followed_by" : data["user"] }
 			}
 		)
 	
 	return { "status" : "OK" }, 200
-
+            

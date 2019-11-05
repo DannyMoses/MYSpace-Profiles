@@ -1,0 +1,13 @@
+[Unit]
+Description=Gunicorn instance to serve profiles service of MYSpace
+After=network.target
+
+[Service]
+User=ubuntu
+Group=nginx
+WorkingDirectory=/home/ubuntu/MYSpace-Profiles
+Environment="/home/ubuntu/.local/bin"
+ExecStart=/home/ubuntu/.local/bin/gunicorn -c config/gunicorn.conf wsgi:app
+
+[Install]
+WantedBy=multi-user.target
