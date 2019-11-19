@@ -7,9 +7,15 @@ import logging
 from config import config
 
 app = Flask(__name__)
-app.config["MONGO_URI"] = "mongodb://localhost:27017/Profiles"
-mongo = PyMongo(app)
 search_route = config["elasticsearch_route"]
+
+app.config['MONGO_URI'] = "mongodb://{}:{}@{}/{}".format(
+				config['mongo_usr'],
+				config['mongo_pwd'],
+				config['mongo_ip'],
+				config['mongo_db']
+			)
+mongo = PyMongo(app)
 
 # Setup logging
 if __name__ != '__main__':
@@ -36,7 +42,8 @@ def add_profile():
 		"following" : [],
 		"num_following" : 0,
 		"followed_by" : [],
-		"num_followed" : 0
+		"num_followed" : 0,
+		"media" : []
 	})
 
 	return { "status" : "OK" }, 200
@@ -216,4 +223,4 @@ def get_follow():
 		return { "status" : "OK", "follow" : True }, 200
 	else:
 		return { "status" : "OK", "follow" : False }, 200
-            
+
