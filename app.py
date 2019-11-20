@@ -25,6 +25,7 @@ if __name__ != '__main__':
 
 @app.route("/reset_profiles", methods=["POST"])
 def reset():
+	app.logger.warning("/reset_profiles called")
 	mongo.db.profiles.drop()
 	return { "status": "OK" }, 200
 
@@ -223,4 +224,41 @@ def get_follow():
 		return { "status" : "OK", "follow" : True }, 200
 	else:
 		return { "status" : "OK", "follow" : False }, 200
+
+@app.route('/user_media', methods=["POST"])
+def user_media():
+	data = request.json
+	app.logger.debug(data)
+	
+	result = mongo.db.profiles.find_one({ "username" : data['user'] })['media']
+
+	return { "status" : "OK", "user_media" : result }, 200
+
+@app.route('/add_media', methods=["POST"])
+def add_media():
+	data = request.json
+	app.logger.debug(data)
+	
+	mongo.db.profiles.update_one( { "username" : data["user"] },
+					{
+					"$push" : { "media" : data["media_id"] }
+					}
+	)
+
+	return { "status" : "OK" }, 200
+
+@app.route('/user/media', methods=["DELETE"])
+def delete_media():
+	data = request.json
+	app.logger.debug(data)
+	print(data)
+	
+	mongo.db.profiles.update_one( { "username" : data["user"] },
+					{
+					"$pullAll" : { "media" : data["media"] }
+					}
+	)
+	print('finished')
+
+	return { "status" : "OK" }, 200
 
