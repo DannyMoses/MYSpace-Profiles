@@ -59,7 +59,7 @@ def get_profile():
 	app.logger.debug(data)
 
 	if not usr:
-		return {"status" : "error", "error" : "could not find user" }, 200 #400
+		return {"status" : "error", "error" : "could not find user" }, 404
 
 	app.logger.debug(usr)
 
@@ -120,7 +120,7 @@ def get_followers():
 	usr = mongo.db.profiles.find_one({"username" : data["username"]})
 
 	if not usr:
-		return { "status" : "error", "error" : "unable to find user" }, 200 #400
+		return { "status" : "error", "error" : "unable to find user" }, 404
 
 	limit = 50 # default
 	if "limit" in data:
@@ -140,7 +140,7 @@ def get_following():
 	usr = mongo.db.profiles.find_one({"username" : data["username"]})
 
 	if not usr:
-		return { "status" : "error", "error" : "unable to find user" }, 200 #400
+		return { "status" : "error", "error" : "unable to find user" }, 404
 
 	limit = 50 # default
 	if "limit" in data:
@@ -161,13 +161,13 @@ def follow():
 	app.logger.debug(data)
 
 	if data['user'] == data['username']:
-		return { "status" : "error", "error" : "You cannot follow yourself" }, 200 #400
+		return { "status" : "error", "error" : "You cannot follow yourself" }, 400
 
 	user = mongo.db.profiles.find_one({"username" : data["user"]})
 	user_followed = mongo.db.profiles.find_one({"username" : data["username"]})
 
 	if not user or not user_followed:
-		return { "status" : "error", "error" : "Could not find user" }, 200 #400
+		return { "status" : "error", "error" : "Could not find user" }, 404
 
 	follow = True
 	if "follow" in data:
@@ -213,7 +213,7 @@ def get_follow():
 	app.logger.debug(data)
 
 	if data['user'] == data['username']:
-		return { "status" : "error", "error" : "You cannot follow yourself" }, 200 #400
+		return { "status" : "error", "error" : "You cannot follow yourself" }, 400
 
 	result = mongo.db.profiles.find_one({ "$and": [
 		{ "username": data['user'] },
